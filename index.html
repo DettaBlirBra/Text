@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text till Tal (TTS)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        select, button {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:active {
+            background-color: #1f6391;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Text till Tal</h1>
+    
+    <!-- Här klistrar användaren in sin text -->
+    <textarea id="text-to-read" placeholder="Klistra in din text här..."></textarea>
+    
+    <div class="controls">
+        <!-- Meny för att välja röst -->
+        <label for="voice-select">Välj en röst:</label>
+        <select id="voice-select">
+            <option value="">Laddar röster...</option>
+        </select>
+        
+        <!-- Knappar för att styra uppläsningen -->
+        <button id="speak-btn">Läs upp texten</button>
+        <button id="stop-btn" style="background-color: #e74c3c;">Stoppa</button>
+    </div>
+</div>
+
+<script>
+    // Kontrollera om webbläsaren stöder SpeechSynthesis
+    if ('speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        const textInput = document.getElementById('text-to-read');
+        const voiceSelect = document.getElementById('voice-select');
+        const speakBtn = document.getElementById('speak-btn');
+        const stopBtn = document.getElementById('stop-btn');
+
+        let voices = [];
+
+        // Funktion för detektera och ladda tillgängliga röster i enheten/webbläsaren
+        function populateVoiceList() {
+            voices = synth.getVoices();
+            voiceSelect.innerHTML = '';
+
+            if (voices.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = 'Inga röster hittades';
+                voiceSelect.appendChild(option);
+                return;
+            }
+
+            voices.forEach((voice) => {
+                const option = document.createElement('option');
+                // Visar röstens namn och språk (t.ex. sv-SE eller en-US)
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.value = voice.name;
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // Initiera röstlistan (vissa webbläsare laddar detta asynkront)
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList();
+        }
+
+        // Funktion för att läsa upp texten
+        speakBtn.addEventListener('click', () => {
+            // Om den redan läser, stoppa först för att undvika överlappning
+            synth.cancel();
+
+            if (textInput.value.trim() === '') {
+                alert('Vänligen klistra in eller skriv lite text först!');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(textInput.value);
+            
+            // Hitta den valda rösten i listan
+            const selectedVoiceName = voiceSelect.value;
+            const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            // Starta uppläsningen
+            synth.speak(utterance);
+        });
+
+        // Stoppa uppläsningen helt
+        stopBtn.addEventListener('click', () => {
+            synth.cancel();
+        });
+
+    } else {
+        alert("Tyvärr stöder inte din webbläsare text-till-tal (Speech Synthesis). Prova Google Chrome eller Edge.");
+    }
+</script>
+
+</body>
+</html>
