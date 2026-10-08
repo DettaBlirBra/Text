@@ -3,156 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text till Tal (TTS)</title>
+    <title>Det Oändliga Partikelregnet ✨</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+        #canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
         }
         h1 {
-            text-align: center;
-            color: #2c3e50;
+            margin: 0 0 5px 0;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            letter-spacing: 2px;
         }
-        .container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            resize: vertical;
-            box-sizing: border-box;
-            font-size: 16px;
+        p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.7;
         }
         .controls {
-            margin-top: 15px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
             display: flex;
-            flex-direction: column;
             gap: 10px;
         }
-        select, button {
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
         button {
-            background-color: #3498db;
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
             cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
             font-weight: bold;
-            transition: background 0.2s;
         }
         button:hover {
-            background-color: #2980b9;
-        }
-        button:active {
-            background-color: #1f6391;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Text till Tal</h1>
-    
-    <!-- Här klistrar användaren in sin text -->
-    <textarea id="text-to-read" placeholder="Klistra in din text här..."></textarea>
-    
-    <div class="controls">
-        <!-- Meny för att välja röst -->
-        <label for="voice-select">Välj en röst:</label>
-        <select id="voice-select">
-            <option value="">Laddar röster...</option>
-        </select>
-        
-        <!-- Knappar för att styra uppläsningen -->
-        <button id="speak-btn">Läs upp texten</button>
-        <button id="stop-btn" style="background-color: #e74c3c;">Stoppa</button>
+    <div class="ui">
+        <h1>PARTIKEL-KAOS</h1>
+        <p>Dra med musen/fingret för att skapa magi. Det tar aldrig slut.</p>
     </div>
-</div>
 
-<script>
-    // Kontrollera om webbläsaren stöder SpeechSynthesis
-    if ('speechSynthesis' in window) {
-        const synth = window.speechSynthesis;
-        const textInput = document.getElementById('text-to-read');
-        const voiceSelect = document.getElementById('voice-select');
-        const speakBtn = document.getElementById('speak-btn');
-        const stopBtn = document.getElementById('stop-btn');
+    <div class="controls">
+        <button onclick="bytLäge()">Ändra Läge 🌀</button>
+        <button onclick="rensa()">Rensa 🧹</button>
+    </div>
 
-        let voices = [];
+    <canvas id="canvas"></canvas>
 
-        // Funktion för detektera och ladda tillgängliga röster i enheten/webbläsaren
-        function populateVoiceList() {
-            voices = synth.getVoices();
-            voiceSelect.innerHTML = '';
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-            if (voices.length === 0) {
-                const option = document.createElement('option');
-                option.textContent = 'Inga röster hittades';
-                voiceSelect.appendChild(option);
-                return;
-            }
-
-            voices.forEach((voice) => {
-                const option = document.createElement('option');
-                // Visar röstens namn och språk (t.ex. sv-SE eller en-US)
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.value = voice.name;
-                voiceSelect.appendChild(option);
-            });
+        // Anpassa storlek efter skärmen
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
+        window.addEventListener('resize', resize);
+        resize();
 
-        // Initiera röstlistan (vissa webbläsare laddar detta asynkront)
-        populateVoiceList();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = populateVoiceList();
-        }
+        const partiklar = [];
+        const mus = { x: null, y: null, aktiv: false };
+        let aktuelltLäge = 0; // 0 = Följ musen, 1 = Explosion, 2 = Virvel
 
-        // Funktion för att läsa upp texten
-        speakBtn.addEventListener('click', () => {
-            // Om den redan läser, stoppa först för att undvika överlappning
-            synth.cancel();
-
-            if (textInput.value.trim() === '') {
-                alert('Vänligen klistra in eller skriv lite text först!');
-                return;
-            }
-
-            const utterance = new SpeechSynthesisUtterance(textInput.value);
-            
-            // Hitta den valda rösten i listan
-            const selectedVoiceName = voiceSelect.value;
-            const selectedVoice = voices.find(voice => voice.name === selectedVoiceName);
-            
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-
-            // Starta uppläsningen
-            synth.speak(utterance);
+        // Mus- och touch-lyssnare
+        window.addEventListener('mousemove', (e) => {
+            mus.x = e.clientX;
+            mus.y = e.clientY;
+            mus.aktiv = true;
+            skapaPartiklar(2);
         });
 
-        // Stoppa uppläsningen helt
-        stopBtn.addEventListener('click', () => {
-            synth.cancel();
+        window.addEventListener('touchmove', (e) => {
+            mus.x = e.touches[0].clientX;
+            mus.y = e.touches[0].clientY;
+            mus.aktiv = true;
+            skapaPartiklar(2);
         });
 
-    } else {
-        alert("Tyvärr stöder inte din webbläsare text-till-tal (Speech Synthesis). Prova Google Chrome eller Edge.");
-    }
-</script>
+        window.addEventListener('mousedown', () => skapaPartiklar(30));
+        window.addEventListener('touchstart', (e) => {
+            mus.x = e.touches[0].clientX;
+            mus.y = e.touches[0].clientY;
+            skapaPartiklar(30);
+        });
 
+        class Partikel {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // Slumpa hastighet och riktning
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                // Slumpa storlek
+                this.storlek = Math.random() * 5 + 2;
+                // Slumpa färg (HUE i HSL)
+                this.hue = Math.random() * 360;
+                this.liv = 1; // 100% liv kvar
+                this.blekning = Math.random() * 0.01 + 0.005;
+            }
+
+            uppdatera() {
+                // Olika fysik-lägen
+                if (mus.aktiv) {
+                    const dx = mus.x - this.x;
+                    const dy = mus.y - this.y;
+                    const distans = Math.sqrt(dx * dx + dy * dy);
+
+                    if (aktuelltLäge === 0) {
+                        // Gravitation mot musen
+                        this.vx += (dx / distans) * 0.2;
+                        this.vy += (dy / distans) * 0.2;
+                    } else if (aktuelltLäge === 2) {
+                        // Virvel/omloppbana runt musen
+                        this.vx += (dx / distans) * 0.2 + (dy / distans) * 0.1;
+                        this.vy += (dy / distans) * 0.2 - (dx / distans) * 0.1;
+                    }
+                }
+
+                // Tröghet/Luftmotstånd
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                // Flytta partikeln
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Studsa mot väggarna
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+                // Minska livet (blekna bort)
+                this.liv -= this.blekning;
+                this.hue += 1; // Ändra färg över tid
+            }
+
+            rita() {
+                ctx.fillStyle = `hsl(${this.hue}, 100%, 60%, ${this.liv})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.storlek, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function skapaPartiklar(antal) {
+            if (mus.x === null || mus.y === null) return;
+            for (let i = 0; i < antal; i++) {
+                partiklar.push(new Partikel(mus.x, mus.y));
+            }
+        }
+
+        function bytLäge() {
+            aktuelltLäge = (aktuelltLäge + 1) % 3;
+            const lägen = ["Gravitation 🌌", "Frilevande 🎆", "Kosmisk Virvel 🌀"];
+            alert("Läge ändrat till: " + lägen[aktuelltLäge]);
+        }
+
+        function rensa() {
+            partiklar.length = 0;
+        }
+
+        // Huvudloopen som körs 60 gånger per sekund
+        function animera() {
+            // Skapar en snygg "svans"-effekt genom att inte rensa skärmen helt
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = partiklar.length - 1; i >= 0; i--) {
+                partiklar[i].uppdatera();
+                partiklar[i].rita();
+
+                // Ta bort döda partiklar
+                if (partiklar[i].liv <= 0) {
+                    partiklar.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animera);
+        }
+
+        animera();
+    </script>
 </body>
 </html>
